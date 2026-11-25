@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tableau de bord DHT11</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f3f4f6; margin: 0; padding: 24px; }
+    h1 { text-align: center; }
+    .cartes { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
+    .carte { background: white; border-radius: 12px; padding: 24px; min-width: 200px;
+             text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,.15); }
+    .valeur { font-size: 48px; font-weight: bold; margin: 8px 0; }
+    .titre { color: #6b7280; }
+    #statut { text-align: center; margin-top: 16px; color: #6b7280; }
+  </style>
+</head>
+<body>
+  <h1>Tableau de bord DHT11</h1>
+  <div class="cartes">
+    <div class="carte"><div class="titre">Température</div><div class="valeur" id="temp">--</div></div>
+    <div class="carte"><div class="titre">Humidité</div><div class="valeur" id="hum">--</div></div>
+    <div class="carte"><div class="titre">Dernière mesure</div><div class="valeur" id="ago" style="font-size:28px">--</div></div>
+  </div>
+  <p id="statut"></p>
+
+  <script>
+    let derniereDate = null;
+
+    async function charger() {
+      try {
+        const reponse = await fetch("/api/get");
+        const json = await reponse.json();
+        const mesures = json.data;
+        if (mesures.length === 0) {
+          document.getElementById("statut").textContent = "Aucune mesure pour le moment.";
+          return;
+        }
+        const derniere = mesures[mesures.length - 1];
+        document.getElementById("temp").textContent = derniere.temp + " °C";
+        document.getElementById("hum").textContent = derniere.hum + " %";
+        derniereDate = new Date(derniere.dt);
+        document.getElementById("statut").textContent = mesures.length + " mesures enregistrées";
+      } catch (e) {
+        document.getElementById("statut").textContent = "Erreur de connexion au serveur";
+      }
+    }
+
+    function majTemps() {
+      if (!derniereDate) return;
+      const s = Math.round((new Date() - derniereDate) / 1000);
+      document.getElementById("ago").textContent = s < 60 ? "il y a " + s + " s"
+        : "il y a " + Math.floor(s / 60) + " min";
+    }
+
+    charger();
+    setInterval(charger, 5000);   // récupère les données toutes les 5 s
+    setInterval(majTemps, 1000);  // met à jour le temps écoulé chaque seconde
+  </script>
+</body>
+</html>
